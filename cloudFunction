@@ -1,0 +1,30 @@
+import pandas as pd
+from pathlib import Path
+import requests
+import datetime
+def get_candles_df(json_data: str) -> pd.DataFrame:
+   candles_df = pd.DataFrame(json_data)
+   candles_df.columns = [
+       "time",
+       "open",
+       "high",
+       "low",
+       "close",
+       "volume",
+   ]
+   candles_df["time"] = candles_df["time"].apply(
+       lambda x: datetime.datetime.fromtimestamp(x / 1000.0)
+   )
+   return candles_df
+def cloudFunction(request):
+   table_id = 'btcusd_data.btcusd_final'
+   project_id= 'test1-339918'
+   base_url = "https://api.gemini.com"
+   api_version = "v2"
+   symbol = "btcusd"
+   time = "1m"
+   url = f"{base_url}/{api_version}/candles/{symbol}/{time}"
+   response = requests.get(url)
+   btcusd_prices_df = get_candles_df(response.json()) 
+   pd.DataFrame.to_gbq(btcusd_prices_df, table_id, project_id=project_id, if_exists = 'append')
+   return f' Uploaded btcusd data to GoogleBigQuery(GBQ)!'
